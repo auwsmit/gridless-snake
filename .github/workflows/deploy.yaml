@@ -22,7 +22,9 @@ jobs:
         version: 4.0.11
 
     - name: Build web version
-      run: ./build_web.sh
+      run: |
+        chmod +x ./build_web.sh
+        ./build_web.sh
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
