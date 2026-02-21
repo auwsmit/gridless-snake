@@ -11,15 +11,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - uses: laytan/setup-odin@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        release: false
+
     - name: Setup Emscripten
       uses: mymindstorm/setup-emsdk@v14
       with:
         version: 4.0.11
 
     - name: Build web version
-      run: |
-        chmod +x ./build_web.sh
-        ./build_web.sh
+      run: ./build_web.sh
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
