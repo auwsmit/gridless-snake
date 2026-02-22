@@ -16,6 +16,7 @@ game_init :: proc() {
 game_update :: proc() {
 	update()
 	draw()
+	free_all(context.temp_allocator)
 }
 
 @(export)
