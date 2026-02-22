@@ -1,11 +1,16 @@
-// Manages the game loop
+// EXPLANATION:
+// Creates the game window, manages the main game loop,
+// and defines the memory pool for hot-reloading
+//
+// See gameplay.odin for actual game code
+
 package snake
 
 import rl "vendor:raylib"
 // import "core:fmt"
 // import "core:strings"
 
-WINDOW_NAME    :: "Odin Testing"
+WINDOW_NAME    :: "Gridless Snake"
 VIRTUAL_WIDTH  :: 800.0
 VIRTUAL_HEIGHT :: 500.0
 GRID_UNIT      :: 20
@@ -37,10 +42,12 @@ g_mem: ^Game_Memory
 render_texture: ^rl.Texture2D
 game: ^Gameplay_State
 snake: ^Entity_Snake
+head: ^Snake_Part
 
 refresh_globals :: proc() {
 	game = &g_mem.game
 	snake = &g_mem.game.snake
+	head = &g_mem.game.snake.body[0]
 	render_texture = &g_mem.viewport.render.texture
 }
 
@@ -52,7 +59,7 @@ init :: proc() {
 
 	g_mem^ = Game_Memory {
 		current_screen = .GAME,
-		viewport = { render_scale = 2.0 }, // resolution will be 2x the virtual resolutun
+		viewport = { render_scale = 4.0 }, // render resolution is render_scale * virtual resolution
 	}
 
 	init_gameplay()
@@ -131,15 +138,16 @@ draw :: proc() {
 		rl.EndMode2D()
 		rl.BeginMode2D(g_mem.ui_camera)
 
-		// #partial switch g_mem.current_screen {
-		// case .GAME: draw_menu()
-		// }
-		rl.DrawFPS(0, 0)
-		// rl.DrawText(temp_cstrf("zoom: %.2f, player zoom: %.2f", g_mem.game_camera.zoom, game.camera_zoom), 0, 20, 20, rl.WHITE)
+		#partial switch g_mem.current_screen {
+		case .GAME: draw_menu()
+		}
+
+		// // Debug
+		// rl.DrawFPS(0, 0)
+		// rl.DrawText(temp_cstrf("actual zoom: %.2f, player zoom: %.2f", g_mem.game_camera.zoom, game.camera_zoom), 0, 20, 20, rl.WHITE)
 		// rl.DrawText(temp_cstrf("snake length: %v", len(snake.body)), 0, 40, 20, rl.WHITE)
 		// rl.DrawText(temp_cstrf("snake grow buffer: %v", snake.should_grow), 0, 60, 20, rl.WHITE)
 		// rl.DrawText(temp_cstrf("snake history: %v", len(snake.history)), 0, 80, 20, rl.WHITE)
-		// rl.DrawText(temp_cstrf("snake h index: %v", snake.spawn_index), 0, 100, 20, rl.WHITE)
 
 		rl.EndMode2D()
 	rl.EndTextureMode()
