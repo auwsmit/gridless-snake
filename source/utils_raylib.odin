@@ -8,9 +8,9 @@ import "core:strings"
 // updates a timer,
 // returns true when timer runs out
 timer_countdown :: proc(timer: ^f32, reset: f32 = 0, frametime: f32 = 0) -> bool {
-    frametime := frametime
-    if frametime == 0 { frametime = rl.GetFrameTime() }
     if timer^ > 0 {
+        frametime := frametime
+        if frametime == 0 { frametime = rl.GetFrameTime() }
         timer^ -= frametime
         return false
     } else {
@@ -27,7 +27,7 @@ temp_cstrf :: proc(s: string, args: ..any) -> (res: cstring) {
     )
 }
 
-// Rotated rectangle collision:
+// Rotated rectangle collision using SAT method
 Rectangle_Angled :: struct {
 	using rec: rl.Rectangle,
 	angle: f32,
@@ -40,10 +40,10 @@ get_vertices :: proc(ra: Rectangle_Angled) -> [4]rl.Vector2 {
     sin_a := math.sin(rad)
 
     corners := [4]rl.Vector2{
-        rl.Vector2{0, 0} - ra.origin,
-        rl.Vector2{ra.width, 0} - ra.origin,
+        rl.Vector2{0,        0}         - ra.origin,
+        rl.Vector2{ra.width, 0}         - ra.origin,
         rl.Vector2{ra.width, ra.height} - ra.origin,
-        rl.Vector2{0, ra.height} - ra.origin,
+        rl.Vector2{0,        ra.height} - ra.origin,
     }
 
     world_verts: [4]rl.Vector2
@@ -60,11 +60,16 @@ check_collision :: proc(a, b: Rectangle_Angled) -> bool {
     v_a := get_vertices(a)
     v_b := get_vertices(b)
 
+    edge_a0 := v_a[1] - v_a[0]
+    edge_a1 := v_a[3] - v_a[0]
+    edge_b0 := v_b[1] - v_b[0]
+    edge_b1 := v_b[3] - v_b[0]
+
     axes := [4]rl.Vector2{
-        rl.Vector2Normalize(v_a[1] - v_a[0]),
-        rl.Vector2Normalize(v_a[3] - v_a[0]),
-        rl.Vector2Normalize(v_b[1] - v_b[0]),
-        rl.Vector2Normalize(v_b[3] - v_b[0]),
+        rl.Vector2Normalize(rl.Vector2{-edge_a0.y, edge_a0.x}),
+        rl.Vector2Normalize(rl.Vector2{-edge_a1.y, edge_a1.x}),
+        rl.Vector2Normalize(rl.Vector2{-edge_b0.y, edge_b0.x}),
+        rl.Vector2Normalize(rl.Vector2{-edge_b1.y, edge_b1.x}),
     }
 
     for axis in axes {

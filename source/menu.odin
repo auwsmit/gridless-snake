@@ -20,8 +20,14 @@ draw_menu :: proc() {
 		draw_text_centered("PAUSED", 0, VIRTUAL_HEIGHT/4, VIRTUAL_WIDTH, 50)
 
 		menu_pos := f32(VIRTUAL_HEIGHT/2) - MENU_HEIGHT
-		if draw_button("Resume", VIRTUAL_WIDTH/2-(MENU_WIDTH/2), menu_pos, MENU_WIDTH, MENU_HEIGHT) {
+		if draw_button("Resume", VIRTUAL_WIDTH/2-MENU_WIDTH/2, menu_pos, MENU_WIDTH, MENU_HEIGHT) {
 			game.is_paused = !game.is_paused
+		}
+
+		menu_pos += MENU_HEIGHT + 20
+		if draw_button("Restart", VIRTUAL_WIDTH/2-MENU_WIDTH/2, menu_pos, MENU_WIDTH, MENU_HEIGHT) {
+			shutdown_gameplay()
+			init_gameplay()
 		}
 
 		menu_pos += MENU_HEIGHT + 40
@@ -31,7 +37,7 @@ draw_menu :: proc() {
 		draw_slider("Resolution scale", VIRTUAL_WIDTH/2 - MENU_WIDTH/2, menu_pos, MENU_WIDTH, MENU_HEIGHT, &g_mem.viewport.render_scale, 1, 4)
 		g_mem.viewport.render_scale = math.round_f32(g_mem.viewport.render_scale/INCREMENT)*INCREMENT
 		if (g_mem.viewport.render_scale != render_scale_before) {
-			if (g_mem.slider_timer <= 0) {
+			if (g_mem.slider_timer == 0) {
 				g_mem.slider_timer = COOLDOWN_TIME
 				init_viewport_render_texture()
 			} else {
@@ -40,7 +46,7 @@ draw_menu :: proc() {
 		}
 
 		menu_pos += MENU_HEIGHT + 20
-		if draw_button("Exit", VIRTUAL_WIDTH/2-(MENU_WIDTH/2), menu_pos, MENU_WIDTH, MENU_HEIGHT) {
+		if draw_button("Exit", VIRTUAL_WIDTH/2-MENU_WIDTH/2, menu_pos, MENU_WIDTH, MENU_HEIGHT) {
 			g_mem.should_close = true
 		}
 
