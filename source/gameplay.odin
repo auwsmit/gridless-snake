@@ -22,7 +22,7 @@ APPLE_FADE_TIME :: 0.5
 
 Gameplay_State :: struct {
 	camera_zoom: f32,
-	camera_target: rl.Vector2,
+	camera_target: Vec2,
 
 	time_accumulator: f32,
 	is_paused: bool,
@@ -60,7 +60,7 @@ Snake_Part :: struct {
 }
 
 Snake_History :: struct { // history for the snake's trail
-	using position: rl.Vector2,
+	using position: Vec2,
 	angle: f32,
 	color: rl.Color,
 }
@@ -79,7 +79,7 @@ Input_State :: struct {
 
 	game_mouse_pos,
 	ui_mouse_pos,
-	mouse_delta: rl.Vector2,
+	mouse_delta: Vec2,
 }
 
 get_input :: proc(old_input: Input_State) -> Input_State {
@@ -111,7 +111,6 @@ init_gameplay :: proc() {
 	head.rec = {VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2, SNAKE_WIDTH, SNAKE_LENGTH}
 	head.origin = {head.width/2, head.height/2}
 	game.snake.should_grow = 1
-	game.score -= 1
 
 	game.apples = make([dynamic]Entity_Apple)
 
@@ -169,7 +168,7 @@ update_gameplay :: proc() {
 	if !game.is_paused && !game.is_gameover {
 
 		game.time_accumulator += frame_time
-		tick_rate := f32(TICK_RATE)
+		tick_rate: f32 = TICK_RATE
 
 		if rl.IsKeyDown(.PERIOD) { tick_rate /= 2 }
 
@@ -188,17 +187,17 @@ tick :: proc() {
 
 	track_snake()
 	update_snake() // player movement, and snake growth
-	snake_collision()
+	update_collision()
 
-	// // camera controls
-	// if (input.mouse_wheel_move != 0) {
-	// 	game.camera_zoom += input.mouse_wheel_move*0.1
-	// 	game.camera_zoom = math.clamp(game.camera_zoom, -0.9, 2)
-	// }
+	// camera controls
+	if (input.mouse_wheel_move != 0) {
+		game.camera_zoom += input.mouse_wheel_move*0.1
+		game.camera_zoom = math.clamp(game.camera_zoom, -0.9, 2)
+	}
 
-	// if (rl.Vector2Length(input.mouse_delta) > 0) && rl.IsMouseButtonDown(.RIGHT) {
-	// 	game.camera_target += input.mouse_delta/(g_mem.viewport.scale*g_mem.game_camera.zoom)
-	// }
+	if (rl.Vector2Length(input.mouse_delta) > 0) && rl.IsMouseButtonDown(.RIGHT) {
+		game.camera_target += input.mouse_delta/(g_mem.viewport.scale*g_mem.game_camera.zoom)
+	}
 }
 
 color_inc := 1 // used for snake body color pattern
@@ -208,14 +207,14 @@ track_snake :: proc() {
 	else if snake.color_mod < 1 { color_inc = 1 }
 	snake.next_color = rl.ColorBrightness(SNAKE_COLOR, -0.2 + 0.01*f32(snake.color_mod))
 
-	latest: Snake_History = {rl.Vector2{head.x, head.y}, head.angle, snake.next_color}
+	latest: Snake_History = {{head.x, head.y}, head.angle, snake.next_color}
 	append(&snake.history, latest)
 }
 
 update_snake :: proc() {
 	turn_rate: f32 = snake.speed*4
 	max_turn_rate := turn_rate*TICK_RATE
-	target := rl.Vector2{head.x, head.y}
+	target := Vec2{head.x, head.y}
 
 	// absolute direction keyboard
 	if input.space {
@@ -273,7 +272,7 @@ update_snake :: proc() {
 		}
 	}
 
-	movement: rl.Vector2 = {0, -snake.speed}*TICK_RATE
+	movement: Vec2 = {0, -snake.speed}*TICK_RATE
 	movement = rl.Vector2Rotate(movement, head.angle*rl.DEG2RAD)
 
 	// move head
@@ -332,14 +331,14 @@ snake_grow :: proc() -> Snake_Part {
 	return s
 }
 
-snake_collision :: proc() {
-	// screen edges
+update_collision :: proc() {
+	// snake to screen edges
 	if head.x < 0 || head.x > VIRTUAL_WIDTH || head.y < 0 || head.y > VIRTUAL_HEIGHT {
 		game.is_gameover = true
 		return
 	}
 
-	// self-collision
+	// snake self-collision
 	head_collide := head.rec_angled
 	head_collide.width /= 3
 	head_collide.height /= 3
@@ -369,7 +368,7 @@ snake_collision :: proc() {
 
 // - spawn pos is random when unspecified
 // - apple needs to be appended to `game.apples` array
-make_apple :: proc(spawn_pos: rl.Vector2 = {}) -> (apple: Entity_Apple, could_spawn := true)  {
+make_apple :: proc(spawn_pos: Vec2 = {}) -> (apple: Entity_Apple, could_spawn := true)  {
 	spawn_pos := spawn_pos
 	apple.width = APPLE_WIDTH
 	apple.height = APPLE_WIDTH
@@ -434,13 +433,13 @@ draw_gameplay :: proc() {
 	grass_rec := rl.Rectangle{0, 0, f32(game.grass_a_texture.width), f32(game.grass_a_texture.height)}
 	screen_rec := rl.Rectangle{0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT}
 	if grass_flag {
-		rl.DrawTexturePro(game.grass_a_texture, grass_rec, screen_rec, rl.Vector2(0), 0, rl.WHITE)
+		rl.DrawTexturePro(game.grass_a_texture, grass_rec, screen_rec, Vec2(0), 0, rl.WHITE)
 	} else {
-		rl.DrawTexturePro(game.grass_b_texture, grass_rec, screen_rec, rl.Vector2(0), 0, rl.WHITE)
+		rl.DrawTexturePro(game.grass_b_texture, grass_rec, screen_rec, Vec2(0), 0, rl.WHITE)
 	}
 
 	apple_texture := rl.Rectangle{0, 0, f32(game.apple_texture.width), f32(game.apple_texture.height)}
-	apple_origin := rl.Vector2{f32(game.apple_texture.width/4), f32(game.apple_texture.height/4)}
+	apple_origin := Vec2{f32(game.apple_texture.width/4), f32(game.apple_texture.height/4)}
 	apple_origin -= {0.5, 0.5}
 	for apple in game.apples {
 		// apple_rec.width = apple_rec.width*0.5/apple.spawn_anim_timer+1
@@ -513,7 +512,7 @@ draw_gameplay :: proc() {
 	if game.is_gameover {
 		rl.DrawRectangleRec({0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT}, rl.Color{0, 0, 0, 100})
 
-		text := rl.TextFormat("SCORE: %i", len(snake.body)-1)
+		text := rl.TextFormat("SCORE: %i", game.score)
 		draw_text_centered(text, 0, VIRTUAL_HEIGHT/2-50, VIRTUAL_WIDTH, 60)
 		if game.gameover_cooldown == 0 {
 			draw_text_centered("TRY AGAIN?", 0, VIRTUAL_HEIGHT/2+30, VIRTUAL_WIDTH, 40)

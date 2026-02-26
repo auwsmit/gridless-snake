@@ -52,6 +52,15 @@ draw_menu :: proc() {
 
 		input = {}
 	}
+
+	// // Debug
+	// rl.DrawFPS(0, 0)
+	// rl.DrawText(temp_cstrf("actual zoom: %.2f, player zoom: %.2f", g_mem.game_camera.zoom, game.camera_zoom), 0, 20, 20, rl.WHITE)
+	rl.DrawText(temp_cstrf("score: %v", game.score), 0, 40, 20, rl.WHITE)
+	// rl.DrawText(temp_cstrf("snake length: %v", len(snake.body)), 0, 40, 20, rl.WHITE)
+	// rl.DrawText(temp_cstrf("snake grow buffer: %v", snake.should_grow), 0, 60, 20, rl.WHITE)
+	// rl.DrawText(temp_cstrf("snake history: %v", len(snake.history)), 0, 80, 20, rl.WHITE)
+
 }
 
 // Draws text centered on a base position and width

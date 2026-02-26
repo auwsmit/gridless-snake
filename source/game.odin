@@ -24,8 +24,8 @@ Game_Memory :: struct {
 	viewport: Viewport_Rectangle,
 	ui_camera: rl.Camera2D,
 	game_camera: rl.Camera2D,
-	mouse_pos_ui: rl.Vector2,
-	mouse_pos_game: rl.Vector2,
+	mouse_pos_ui: Vec2,
+	mouse_pos_game: Vec2,
 
 	// menu
 	slider_timer: f32,
@@ -141,13 +141,6 @@ draw :: proc() {
 		#partial switch g_mem.current_screen {
 		case .GAME: draw_menu()
 		}
-
-		// // Debug
-		// rl.DrawFPS(0, 0)
-		// rl.DrawText(temp_cstrf("actual zoom: %.2f, player zoom: %.2f", g_mem.game_camera.zoom, game.camera_zoom), 0, 20, 20, rl.WHITE)
-		// rl.DrawText(temp_cstrf("snake length: %v", len(snake.body)), 0, 40, 20, rl.WHITE)
-		// rl.DrawText(temp_cstrf("snake grow buffer: %v", snake.should_grow), 0, 60, 20, rl.WHITE)
-		// rl.DrawText(temp_cstrf("snake history: %v", len(snake.history)), 0, 80, 20, rl.WHITE)
 
 		rl.EndMode2D()
 	rl.EndTextureMode()
