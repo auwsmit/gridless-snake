@@ -27,7 +27,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmplnkxe8yt.js
+// include: /tmp/tmp9wed1qz9.js
 
   Module['expectedDataFileDownloads'] ??= 0;
   Module['expectedDataFileDownloads']++;
@@ -208,21 +208,21 @@ Module['FS_createPath']("/", "assets", true, true);
 
   })();
 
-// end include: /tmp/tmplnkxe8yt.js
-// include: /tmp/tmpav_zmgdz.js
+// end include: /tmp/tmp9wed1qz9.js
+// include: /tmp/tmphzcbdph9.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmpav_zmgdz.js
-// include: /tmp/tmpx9advi_x.js
+  // end include: /tmp/tmphzcbdph9.js
+// include: /tmp/tmpbg_sial9.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmpx9advi_x.js
+  // end include: /tmp/tmpbg_sial9.js
 
 
 var arguments_ = [];
@@ -9162,6 +9162,8 @@ async function createWasm() {
 
   var FS_createDevice = (...args) => FS.createDevice(...args);
 
+  var requestFullscreen = Browser.requestFullscreen;
+
   FS.createPreloadedFile = FS_createPreloadedFile;
   FS.staticInit();;
 for (let i = 0; i < 32; ++i) tempFixedLengthArray.push(new Array(i));;
@@ -9456,7 +9458,6 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'exceptionLast',
   'exceptionCaught',
   'Browser',
-  'requestFullscreen',
   'requestFullScreen',
   'setCanvasSize',
   'getUserMedia',
@@ -9631,6 +9632,7 @@ unexportedSymbols.forEach(unexportedRuntimeSymbol);
 
   // End runtime exports
   // Begin JS library exports
+  Module['requestFullscreen'] = requestFullscreen;
   // End JS library exports
 
 // end include: postlibrary.js
