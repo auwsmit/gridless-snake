@@ -5,6 +5,8 @@ import "core:math"
 import "core:fmt"
 import "core:strings"
 
+ODIN_BUILD_WEB :: ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32
+
 Vec2 :: rl.Vector2 // lazy shorthand
 
 // updates a timer,
@@ -19,14 +21,6 @@ timer_countdown :: proc(timer: ^f32, reset: f32 = 0, frametime: f32 = 0) -> bool
         timer^ = reset
         return true
     }
-}
-
-// formatted cstring using temp allocator
-temp_cstrf :: proc(s: string, args: ..any) -> (res: cstring) {
-    return strings.clone_to_cstring(
-        fmt.aprintf(s, ..args, allocator = context.temp_allocator),
-        allocator = context.temp_allocator,
-    )
 }
 
 // Rotated rectangle collision using SAT method

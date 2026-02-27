@@ -9,13 +9,17 @@ import rl "vendor:raylib"
 // import "core:fmt"
 import "core:math"
 
-TICK_RATE :: 1/60.0
+TICK_RATE :: 1/120.0
 
 SNAKE_COLOR :: rl.DARKPURPLE
 SNAKE_SPEED :: 150
 SNAKE_LENGTH :: 20
 SNAKE_WIDTH :: 20
 SNAKE_GAP :: 20
+
+// the history buffer for the snake's trail is shaved by this amount once it gets too long
+HISTORY_END_BUFFER :: 128
+
 APPLE_WIDTH :: 20
 APPLE_FADE_TIME :: 0.5
 
@@ -77,10 +81,12 @@ Input_State :: struct {
 	shift, space: bool,
 	mouse_wheel_move: f32,
 
-	game_mouse_pos,
-	ui_mouse_pos,
+	mouse_pos_game,
+	mouse_pos_ui,
 	mouse_delta: Vec2,
 }
+
+input: Input_State
 
 get_input :: proc(old_input: Input_State) -> Input_State {
 	updated_input := old_input // keep previous input for next tick
@@ -93,8 +99,8 @@ get_input :: proc(old_input: Input_State) -> Input_State {
 	updated_input.space            ||= rl.IsKeyDown(.SPACE)
 	updated_input.mouse_wheel_move +=  rl.GetMouseWheelMove()
 	updated_input.mouse_delta      +=  rl.GetMouseDelta()
-	updated_input.game_mouse_pos = rl.GetScreenToWorld2D(rl.GetMousePosition(), g_mem.game_camera)
-	updated_input.ui_mouse_pos = rl.GetScreenToWorld2D(rl.GetMousePosition(), g_mem.ui_camera)
+	updated_input.mouse_pos_game   = rl.GetScreenToWorld2D(rl.GetMousePosition(), g_mem.camera_game)
+	updated_input.mouse_pos_ui     = rl.GetScreenToWorld2D(rl.GetMousePosition(), g_mem.camera_ui)
 
 	return updated_input
 }
@@ -103,8 +109,8 @@ init_gameplay :: proc() {
 	game = &g_mem.game
 	snake = &g_mem.game.snake
 
-	snake.body = make([dynamic]Snake_Part, 1, 1)
-	snake.history = make([dynamic]Snake_History)
+	snake.body = make([dynamic]Snake_Part, 1, 8)
+	snake.history = make([dynamic]Snake_History, 0, HISTORY_END_BUFFER)
 	snake.speed = SNAKE_SPEED
 
 	head = &game.snake.body[0]
@@ -150,6 +156,10 @@ update_gameplay :: proc() {
 		game.is_paused = !game.is_paused
 	}
 
+	// if rl.IsKeyPressed(.C) {
+	// 	snake.should_grow = 1000
+	// }
+
 	if game.is_gameover && timer_countdown(&game.gameover_cooldown) {
 		if rl.IsMouseButtonPressed(.LEFT) || rl.GetKeyPressed() != .KEY_NULL {
 			shutdown_gameplay()
@@ -158,7 +168,7 @@ update_gameplay :: proc() {
 	}
 
 	// update timers
-	timer_countdown(&g_mem.slider_timer)
+	timer_countdown(&menu_slider_timer)
 	for &apple in game.apples {
 		timer_countdown(&apple.spawn_anim_timer)
 	}
@@ -171,13 +181,13 @@ update_gameplay :: proc() {
 		tick_rate: f32 = TICK_RATE
 
 		if rl.IsKeyDown(.PERIOD) { tick_rate /= 2 }
+		if rl.IsKeyDown(.COMMA) { tick_rate *= 2 }
 
 		for game.time_accumulator >= tick_rate {
 			tick()
 			game.time_accumulator -= tick_rate
 		}
 	}
-
 }
 
 did_tick: bool
@@ -189,15 +199,15 @@ tick :: proc() {
 	update_snake() // player movement, and snake growth
 	update_collision()
 
-	// camera controls
-	if (input.mouse_wheel_move != 0) {
-		game.camera_zoom += input.mouse_wheel_move*0.1
-		game.camera_zoom = math.clamp(game.camera_zoom, -0.9, 2)
-	}
+	// // camera controls
+	// if (input.mouse_wheel_move != 0) {
+	// 	game.camera_zoom += input.mouse_wheel_move*0.1
+	// 	game.camera_zoom = math.clamp(game.camera_zoom, -0.9, 2)
+	// }
 
-	if (rl.Vector2Length(input.mouse_delta) > 0) && rl.IsMouseButtonDown(.RIGHT) {
-		game.camera_target += input.mouse_delta/(g_mem.viewport.scale*g_mem.game_camera.zoom)
-	}
+	// if (rl.Vector2Length(input.mouse_delta) > 0) && rl.IsMouseButtonDown(.RIGHT) {
+	// 	game.camera_target += input.mouse_delta/(g_mem.viewport.scale*g_mem.camera_game.zoom)
+	// }
 }
 
 color_inc := 1 // used for snake body color pattern
@@ -225,7 +235,7 @@ update_snake :: proc() {
 	}
 
 	if rl.IsMouseButtonDown(.LEFT) {
-		target = input.game_mouse_pos
+		target = input.mouse_pos_game
 	} else { // keyboard input
 		if input.uturn {
 			if !game.is_uturning {
@@ -279,12 +289,9 @@ update_snake :: proc() {
 	head.x += movement.x
 	head.y += movement.y
 
-	// the history buffer for the snake's trail is shaved by this amount once it gets too long
-	HISTORY_END_BUFFER :: 128
-
 	// grow snake if history buffer is long enough
 	snake.travel_distance += snake.speed*TICK_RATE
-	if snake.travel_distance > (SNAKE_LENGTH + SNAKE_GAP) {
+	if snake.travel_distance >= (SNAKE_LENGTH + SNAKE_GAP) {
 		snake.spawn_index += 1
 
 		// shave history buffer once it's too long
@@ -340,7 +347,7 @@ update_collision :: proc() {
 
 	// snake self-collision
 	head_collide := head.rec_angled
-	head_collide.width /= 3
+	head_collide.width /= 3 // use a small hitbox to feel more fair
 	head_collide.height /= 3
 	head_collide.origin /= 3
 	for segment,i in snake.body {
@@ -415,7 +422,7 @@ make_apple :: proc(spawn_pos: Vec2 = {}) -> (apple: Entity_Apple, could_spawn :=
 }
 
 GRASS_TIMER_LENGTH :: 1.5
-grass_timer: f32 = GRASS_TIMER_LENGTH
+grass_timer: f32
 grass_flag: bool
 
 draw_gameplay :: proc() {
@@ -438,12 +445,11 @@ draw_gameplay :: proc() {
 		rl.DrawTexturePro(game.grass_b_texture, grass_rec, screen_rec, Vec2(0), 0, rl.WHITE)
 	}
 
+	// apples with spawn fade-in animation
 	apple_texture := rl.Rectangle{0, 0, f32(game.apple_texture.width), f32(game.apple_texture.height)}
 	apple_origin := Vec2{f32(game.apple_texture.width/4), f32(game.apple_texture.height/4)}
 	apple_origin -= {0.5, 0.5}
 	for apple in game.apples {
-		// apple_rec.width = apple_rec.width*0.5/apple.spawn_anim_timer+1
-		// apple_rec.height = apple_rec.width*0.5/apple.spawn_anim_timer+1
 		apple_rec := apple.rec_angled
 		apple_rec.width += apple.width*apple.spawn_anim_timer/APPLE_FADE_TIME
 		apple_rec.height += apple.height*apple.spawn_anim_timer/APPLE_FADE_TIME
@@ -455,17 +461,16 @@ draw_gameplay :: proc() {
 
 	// line to assist mouse controls
 	if rl.IsMouseButtonDown(.LEFT) {
-		rl.DrawLineEx({head.x, head.y}, input.game_mouse_pos, 4, rl.ColorAlpha(rl.BLACK, 0.1))
+		rl.DrawLineEx({head.x, head.y}, input.mouse_pos_game, 4, rl.ColorAlpha(rl.BLACK, 0.1))
 	}
 
+	// Da Snake
 	tail_length := 24
 	if len(snake.body)-2 < tail_length {
 		tail_length = len(snake.body)-2
 	}
-	// rl.DrawText(temp_cstrf("snake length: %v", len(snake.body)), 0, 100, 20, rl.WHITE)
-	// rl.DrawText(temp_cstrf("tail length: %v", tail_length), 0, 120, 20, rl.WHITE)
-
 	tail_i := tail_length
+
 	#reverse for &segment,i in snake.body {
 		if i == 0 { continue }
 
@@ -488,8 +493,8 @@ draw_gameplay :: proc() {
 
 		// the actual snake is more like a dotted line,
 		// so this fills the empty space with more squares
-		for _ in 1..=6 {
-			h_index += 2
+		for _ in 1..=9 {
+			h_index += 3
 			if h_index > len(snake.history)-1 {
 				continue
 			}
@@ -520,7 +525,9 @@ draw_gameplay :: proc() {
 	}
 
 	// // debug: draw snake path
-	// for point in snake.history {
-	// 	rl.DrawPixelV({point.x, point.y}, rl.DARKBLUE)
-	// }
+	if g_mem.is_debug {
+		for point in snake.history {
+			rl.DrawPixelV({point.x, point.y}, rl.DARKBLUE)
+		}
+	}
 }

@@ -18,17 +18,16 @@ ASPECT_RATIO   :: VIRTUAL_WIDTH/VIRTUAL_HEIGHT
 
 Game_Memory :: struct {
 	// global
+	time_accumulator: f32,
+	is_debug: bool,
 	should_close: bool,
 	current_screen: Screen_State,
 
 	viewport: Viewport_Rectangle,
-	ui_camera: rl.Camera2D,
-	game_camera: rl.Camera2D,
+	camera_ui: rl.Camera2D,
+	camera_game: rl.Camera2D,
 	mouse_pos_ui: Vec2,
 	mouse_pos_game: Vec2,
-
-	// menu
-	slider_timer: f32,
 
 	// snake
 	game: Gameplay_State,
@@ -51,9 +50,6 @@ refresh_globals :: proc() {
 	render_texture = &g_mem.viewport.render.texture
 }
 
-frame_time: f32
-input: Input_State
-
 init :: proc() {
 	g_mem = new(Game_Memory)
 
@@ -71,24 +67,32 @@ init :: proc() {
 
 init_window :: proc() {
 	rl.SetConfigFlags({.MSAA_4X_HINT, .WINDOW_RESIZABLE, .VSYNC_HINT})
-	rl.InitWindow(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, WINDOW_NAME)
+	rl.InitWindow(VIRTUAL_WIDTH*1.5, VIRTUAL_HEIGHT*1.5, WINDOW_NAME)
 	rl.SetWindowMinSize(320, 240)
 	rl.SetTargetFPS(300)
 	rl.SetExitKey(nil)
 }
 
+frame_time: f32
+
 update :: proc() {
 	frame_time = rl.GetFrameTime()
 	update_aspect_ratio()
-	g_mem.game_camera = update_game_camera()
-	g_mem.ui_camera = update_ui_camera()
+	g_mem.camera_game = update_camera_game()
+	g_mem.camera_ui = update_camera_ui()
 
 	// Global key bindings
-	if rl.IsKeyPressed(.Q) {
+	
+	if !ODIN_BUILD_WEB && rl.IsKeyPressed(.Q) {
 		g_mem.should_close = true
 	}
+
+	if rl.IsKeyPressed(.F3) {
+		g_mem.is_debug = !g_mem.is_debug
+	}
+
 	if (rl.IsKeyDown(.LEFT_ALT) || rl.IsKeyDown(.RIGHT_ALT)) && rl.IsKeyPressed(.ENTER) {
-		rl.ToggleBorderlessWindowed()
+		rl.ToggleFullscreen()
 	}
 
 	switch g_mem.current_screen {
@@ -97,7 +101,7 @@ update :: proc() {
 	}
 }
 
-update_game_camera :: proc() -> rl.Camera2D {
+update_camera_game :: proc() -> rl.Camera2D {
 	c: rl.Camera2D = {
 		target = {VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2},
 		offset = {
@@ -115,7 +119,7 @@ update_game_camera :: proc() -> rl.Camera2D {
 	return c
 }
 
-update_ui_camera :: proc() -> rl.Camera2D {
+update_camera_ui :: proc() -> rl.Camera2D {
 	return {
 		target = {VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2},
 		offset = {
@@ -128,7 +132,7 @@ update_ui_camera :: proc() -> rl.Camera2D {
 
 draw :: proc() {
 	rl.BeginTextureMode(g_mem.viewport.render)
-		rl.BeginMode2D(g_mem.game_camera)
+		rl.BeginMode2D(g_mem.camera_game)
 
 		switch g_mem.current_screen {
 		case .LOGO: draw_logo()
@@ -136,7 +140,7 @@ draw :: proc() {
 		}
 
 		rl.EndMode2D()
-		rl.BeginMode2D(g_mem.ui_camera)
+		rl.BeginMode2D(g_mem.camera_ui)
 
 		#partial switch g_mem.current_screen {
 		case .GAME: draw_menu()
