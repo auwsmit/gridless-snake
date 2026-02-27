@@ -20,6 +20,7 @@ SNAKE_GAP :: 20
 // the history buffer for the snake's trail is shaved by this amount once it gets too long
 HISTORY_END_BUFFER :: 128
 
+APPLE_AMOUNT :: 3
 APPLE_WIDTH :: 20
 APPLE_FADE_TIME :: 0.5
 
@@ -109,8 +110,8 @@ init_gameplay :: proc() {
 	game = &g_mem.game
 	snake = &g_mem.game.snake
 
-	snake.body = make([dynamic]Snake_Part, 1, 8)
-	snake.history = make([dynamic]Snake_History, 0, HISTORY_END_BUFFER)
+	snake.body = make([dynamic]Snake_Part, 1, 512)
+	snake.history = make([dynamic]Snake_History, 0, 8192)
 	snake.speed = SNAKE_SPEED
 
 	head = &game.snake.body[0]
@@ -118,12 +119,12 @@ init_gameplay :: proc() {
 	head.origin = {head.width/2, head.height/2}
 	game.snake.should_grow = 1
 
-	game.apples = make([dynamic]Entity_Apple)
+	game.apples = make([dynamic]Entity_Apple, 0, APPLE_AMOUNT)
 
 	game.gameover_cooldown = 1.2
 
-	for _ in 1..=3 {
-		apple,_ := make_apple()
+	for _ in 1..=APPLE_AMOUNT {
+		apple,_ := create_apple()
 		append(&g_mem.game.apples, apple)
 	}
 
@@ -156,9 +157,9 @@ update_gameplay :: proc() {
 		game.is_paused = !game.is_paused
 	}
 
-	// if rl.IsKeyPressed(.C) {
-	// 	snake.should_grow = 1000
-	// }
+	if rl.IsKeyPressed(.C) {
+		snake.should_grow = 1000
+	}
 
 	if game.is_gameover && timer_countdown(&game.gameover_cooldown) {
 		if rl.IsMouseButtonPressed(.LEFT) || rl.GetKeyPressed() != .KEY_NULL {
@@ -362,10 +363,10 @@ update_collision :: proc() {
 			game.score += 1
 			snake.should_grow += 1
 			unordered_remove(&game.apples, i)
-			new_apple, did_spawn := make_apple()
+			new_apple, did_spawn := create_apple()
 			if did_spawn {
 				append(&game.apples, new_apple)
-			} else {
+			} else if len(game.apples) == 0 {
 				game.is_gameover = true
 				game.score += 100 // bonus for filling the screen
 			}
@@ -375,7 +376,7 @@ update_collision :: proc() {
 
 // - spawn pos is random when unspecified
 // - apple needs to be appended to `game.apples` array
-make_apple :: proc(spawn_pos: Vec2 = {}) -> (apple: Entity_Apple, could_spawn := true)  {
+create_apple :: proc(spawn_pos: Vec2 = {}) -> (apple: Entity_Apple, could_spawn := true)  {
 	spawn_pos := spawn_pos
 	apple.width = APPLE_WIDTH
 	apple.height = APPLE_WIDTH
@@ -411,7 +412,7 @@ make_apple :: proc(spawn_pos: Vec2 = {}) -> (apple: Entity_Apple, could_spawn :=
 	apple.x = spawn_pos.x
 	apple.y = spawn_pos.y
 	for i := 0; check_valid_spawn(apple) == false; i+=1 {
-		if i == 1000 { // no place found to spawn
+		if i == 256 { // no place found to spawn
 			return apple, false
 		}
 		apple.x = f32(rl.GetRandomValue(i32(0+apple.width), i32(VIRTUAL_WIDTH-apple.width)))

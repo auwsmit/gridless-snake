@@ -13,20 +13,22 @@ MENU_COLOR     :: rl.GRAY
 MENU_HIGHLIGHT :: rl.WHITE
 MENU_BORDER    :: 2
 
-menu_slider_timer: f32
-menu_pos_y := f32(VIRTUAL_HEIGHT/3)
-
 Menu :: struct {
-	x, y: f32,
-	width, height: f32,
+	x, y: f32, // start position of menu
+	width, height: f32, // size of menu item (e.g. a button)
 }
 
-start_menu :: proc(m: Menu) { menu_pos_y = m.y }
+menu_slider_timer: f32
+menu_pos_y := f32(VIRTUAL_HEIGHT/3)
 
 menu_paused: Menu = {
 	VIRTUAL_WIDTH/2-MENU_WIDTH/2,
 	VIRTUAL_HEIGHT/3,
 	MENU_WIDTH, MENU_HEIGHT,
+}
+
+start_menu :: proc(m: Menu) {
+	menu_pos_y = m.y
 }
 
 draw_menu :: proc() {
@@ -50,8 +52,8 @@ draw_menu :: proc() {
 		}
 
 		render_scale_before := g_mem.viewport.render_scale
-		COOLDOWN_TIME :: f32(0.2)
-		INCREMENT :: f32(1)
+		COOLDOWN_TIME :f32: 0.2
+		INCREMENT :f32: 1
 		if draw_slider_menu("Resolution scale", menu_paused, &g_mem.viewport.render_scale, min = 1, max = 4) {
 			g_mem.viewport.render_scale = math.round_f32(g_mem.viewport.render_scale/INCREMENT)*INCREMENT
 			if (g_mem.viewport.render_scale != render_scale_before) {
